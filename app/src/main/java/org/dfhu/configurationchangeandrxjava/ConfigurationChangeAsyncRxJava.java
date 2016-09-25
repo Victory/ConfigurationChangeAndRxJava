@@ -7,6 +7,12 @@ import android.view.KeyEvent;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
@@ -20,12 +26,12 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
     private TextView textView;
 
     private static class TextChangeBus {
-        private static TextChangeBus instance = new TextChangeBus();
-        private static PublishSubject<String> subject = PublishSubject.create();
+        private static final TextChangeBus instance = new TextChangeBus();
+        private static final PublishSubject<String> subject = PublishSubject.create();
 
         static TextChangeBus getInstance() { return instance; }
-        public void setText(String v) { subject.onNext(v); }
-        public Observable<String> getEvents() { return subject; }
+        void setText(String v) { subject.onNext(v); }
+        Observable<String> getEvents() { return subject; }
     }
 
     @Override
@@ -61,7 +67,7 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
 
     private void doSomethingSlow(final String val) {
 
-        Observable<String> o = Observable.just(val)
+        Observable.just(val)
                 .subscribeOn(Schedulers.io())
                 .flatMap(new Func1<String, Observable<String>>() {
                     @Override
@@ -69,20 +75,60 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
                         String slowly = getStringSlowly(val);
                         return Observable.just(slowly);
                     }
+                })
+                .flatMap(new Func1<String, Observable<InputStream>>() {
+                    @Override
+                    public Observable<InputStream> call(String s) {
+                        URL url = null;
+                        try {
+                            url = new URL("http://192.168.1.6:3000/");
+                        } catch (MalformedURLException e) {
+                            e.printStackTrace();
+                        }
+                        URLConnection urlConnection = null;
+                        try {
+                            //noinspection ConstantConditions
+                            urlConnection = url.openConnection();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            //noinspection ConstantConditions
+                            return Observable.just(urlConnection.getInputStream());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }
+                })
+                .flatMap(new Func1<InputStream, Observable<String>>() {
+                    @Override
+                    public Observable<String> call(InputStream inputStream) {
+                        byte[] buffer = new byte[30000];
+                        try {
+                            //noinspection ResultOfMethodCallIgnored,ResultOfMethodCallIgnored
+                            inputStream.read(buffer);
+                            return Observable.just(new String(buffer));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<String>() {
+                    @Override public void onCompleted() { l("somethingSlow onComplete"); }
+                    @Override public void onError(Throwable e) { l("something slow error"); }
+                    @Override public void onNext(String s) { updateTextView(s); }
                 });
-        o.observeOn(AndroidSchedulers.mainThread())
-            .subscribe(new Subscriber<String>() {
-                @Override public void onCompleted() { l("somethingSlow onComplete"); }
-                @Override public void onError(Throwable e) { l("something slow error"); }
-                @Override public void onNext(String s) { updateTextView(s); }
-            });
     }
 
     private void updateTextView(String s) {
         TextChangeBus.getInstance().setText(s);
     }
 
-    /** gets a random string */
+    /** gets a user string after a delay */
     private String getStringSlowly(String val) {
         try {
             Thread.sleep(5000);
