@@ -25,6 +25,9 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
     private EditText editText;
     private TextView textView;
 
+    /**
+     * Event bus for updating the text view
+     */
     private static class TextChangeBus {
         private static final TextChangeBus instance = new TextChangeBus();
         private static final PublishSubject<String> subject = PublishSubject.create();
@@ -65,6 +68,7 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
         });
     }
 
+    /** Creates an example long running observable and subscribes to it */
     private void doSomethingSlow(final String val) {
 
         Observable.just(val)
@@ -124,9 +128,9 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
                 });
     }
 
-    private void updateTextView(String s) {
-        TextChangeBus.getInstance().setText(s);
-    }
+    private void updateTextView(String s) { TextChangeBus.getInstance().setText(s); }
+
+    private void l(String s) { Log.d("config-test-change", s + " - " + this.toString()); }
 
     /** gets a user string after a delay */
     private String getStringSlowly(String val) {
@@ -136,9 +140,5 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
             e.printStackTrace();
         }
         return " gotten slowly: " + val;
-    }
-
-    private void l(String s) {
-        Log.d("config-test-change", s + " - " + this.toString());
     }
 }
