@@ -15,6 +15,7 @@ import java.net.URLConnection;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
@@ -24,6 +25,7 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
 
     private EditText editText;
     private TextView textView;
+    private Subscription sub;
 
     /**
      * Event bus for updating the text view
@@ -59,12 +61,14 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
 
         // Want this to change textView of current, visible activity
         Observable<String> textChanger = TextChangeBus.getInstance().getEvents();
-        textChanger.observeOn(AndroidSchedulers.mainThread()).subscribe(new Subscriber<String>() {
+        sub = textChanger.observeOn(AndroidSchedulers.mainThread()).subscribe(new Subscriber<String>() {
             @Override public void onCompleted() { l("textChanger onComplete"); }
             @Override public void onError(Throwable e) { l("textChanger onError"); }
             @Override public void onNext(String s) {
-                textView.setText(s);
+                l("textChanger updating text");
+                textView.setText(s.substring(0, 21));
             }
+
         });
     }
 
@@ -131,6 +135,12 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
     private void updateTextView(String s) { TextChangeBus.getInstance().setText(s); }
 
     private void l(String s) { Log.d("config-test-change", s + " - " + this.toString()); }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        sub.unsubscribe();
+    }
 
     /** gets a user string after a delay */
     private String getStringSlowly(String val) {
