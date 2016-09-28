@@ -1,9 +1,11 @@
 package org.dfhu.configurationchangeandrxjava;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -151,4 +153,11 @@ public class ConfigurationChangeAsyncRxJava extends AppCompatActivity {
         }
         return " gotten slowly: " + val;
     }
+
+    /** Other Approaches **/
+    public void startOLM(View view) {
+        Intent intent = new Intent(this, OLMActivity.class);
+        startActivity(intent);
+    }
+
 }
